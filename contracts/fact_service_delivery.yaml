@@ -1,0 +1,175 @@
+# Data contract for fact_service_delivery
+# Validated by models/task_b1_contract.py before the final Parquet write.
+
+table: fact_service_delivery
+version: "1.0"
+description: >
+  One row per (data element x period x facility x category option combo).
+  Partitioned by health_area and year_month.
+
+columns:
+  de_uid:
+    type: string
+    nullable: false
+    description: Data element UID (FK -> dim_data_element)
+
+  ou_uid:
+    type: string
+    nullable: false
+    description: Facility org unit UID (FK -> dim_org_unit)
+
+  period:
+    type: string
+    nullable: false
+    pattern: "^[0-9]{6}$"
+    description: Reporting period in yyyyMM format
+
+  program_id:
+    type: string
+    nullable: true
+    description: Program UID (FK -> dim_program); nullable for DEs not mapped to a program
+
+  coc_uid:
+    type: string
+    nullable: false
+    description: Category option combo UID
+
+  coc_name:
+    type: string
+    nullable: false
+
+  raw_value:
+    type: string
+    nullable: true
+    description: Original string value as received from DHIS2
+
+  numeric_value:
+    type: double
+    nullable: true
+    description: Cast numeric value; null for non-numeric types or missing values
+
+  is_late_reported:
+    type: boolean
+    nullable: false
+    description: True if lastUpdated > 60 days after period end date
+
+  is_explicit_zero:
+    type: boolean
+    nullable: false
+    description: True if raw_value == "0"
+
+  is_missing_value:
+    type: boolean
+    nullable: false
+    description: True if raw_value is null
+
+  is_orphaned_coc:
+    type: boolean
+    nullable: false
+    description: True if categoryOptionCombo UID not in metadata
+
+  completeness_score:
+    type: double
+    nullable: true
+    min: 0.0
+    max: 1.0
+    description: Fraction of expected indicators reported for this facility/period
+
+  stored_by:
+    type: string
+    nullable: true
+
+  last_updated:
+    type: string
+    nullable: true
+
+  health_area:
+    type: string
+    nullable: false
+    allowed_values:
+      - Malaria
+      - HIV
+      - Tuberculosis
+      - Reproductive Health
+      - Child Health
+
+  year_month:
+    type: string
+    nullable: false
+    pattern: "^[0-9]{6}$"
+
+  year:
+    type: integer
+    nullable: false
+    min: 2000
+    max: 2100
+
+  month:
+    type: integer
+    nullable: false
+    min: 1
+    max: 12
+
+  quarter:
+    type: string
+    nullable: false
+    pattern: "^[0-9]{4}Q[1-4]$"
+
+  country_name:
+    type: string
+    nullable: true
+
+  region_name:
+    type: string
+    nullable: true
+
+  district_name:
+    type: string
+    nullable: true
+
+  facility_name:
+    type: string
+    nullable: true
+
+checks:
+  - name: no_null_primary_key
+    description: de_uid, ou_uid, period must never be null
+    columns: [de_uid, ou_uid, period]
+    type: not_null
+
+  - name: zero_null_distinction
+    description: is_explicit_zero and is_missing_value must not both be True on the same row
+    type: custom
+    note: "A row cannot simultaneously have value='0' and value=null"
+
+  - name: completeness_range
+    description: completeness_score must be between 0.0 and 1.0 where not null
+    column: completeness_score
+    type: range
+    min: 0.0
+    max: 1.0
+
+  - name: valid_health_area
+    description: health_area must be one of the five PSI programme areas
+    column: health_area
+    type: allowed_values
+    values:
+      - Malaria
+      - HIV
+      - Tuberculosis
+      - Reproductive Health
+      - Child Health
+
+  - name: valid_month
+    description: month must be between 1 and 12
+    column: month
+    type: range
+    min: 1
+    max: 12
+
+  - name: valid_year
+    description: year must be a plausible 4-digit year
+    column: year
+    type: range
+    min: 2000
+    max: 2100
