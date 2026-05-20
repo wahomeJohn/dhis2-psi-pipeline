@@ -130,7 +130,7 @@ def add_dq_flags(df: DataFrame) -> DataFrame:
         )
         .withColumn(
             "is_explicit_zero",
-            F.col("value") == F.lit("0"),
+            F.coalesce(F.col("value") == F.lit("0"), F.lit(False)),
         )
         .withColumn(
             "is_missing_value",

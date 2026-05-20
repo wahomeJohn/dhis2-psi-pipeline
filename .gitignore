@@ -1,0 +1,17 @@
+# Generated data inputs (re-create with: python generate_data.py)
+data/
+
+# Pipeline outputs (re-create with: python pipeline.py ...)
+output/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Pytest cache
+.pytest_cache/
+
+# IDE / OS
+.DS_Store
+*.swp

@@ -54,9 +54,9 @@ def contract():
 # ---------------------------------------------------------------------------
 
 _FACT_SCHEMA = StructType([
-    StructField("de_uid",             StringType(),  False),
-    StructField("ou_uid",             StringType(),  False),
-    StructField("period",             StringType(),  False),
+    StructField("de_uid",             StringType(),  True),
+    StructField("ou_uid",             StringType(),  True),
+    StructField("period",             StringType(),  True),
     StructField("program_id",         StringType(),  True),
     StructField("coc_uid",            StringType(),  False),
     StructField("coc_name",           StringType(),  False),

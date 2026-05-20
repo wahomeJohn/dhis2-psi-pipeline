@@ -67,6 +67,7 @@ def create_spark_session() -> SparkSession:
         SparkSession.builder
         .master("local[*]")
         .appName("PSI-DISC-DHIS2-Pipeline")
+        .config("spark.driver.memory", "4g")
         # Reduce shuffle partitions for local mode (default 200 is wasteful)
         .config("spark.sql.shuffle.partitions", "8")
         # Allow schema merging when reading partitioned Parquet
@@ -196,7 +197,13 @@ def main() -> None:
             de_df, hierarchy_df, flagged_df, prog_df, args.output_dir,
         )
 
-        # ── Bonus B1: Contract validation before fact write ────────────────
+        fact_df = run_stage(
+            "05-fact",
+            build_fact_service_delivery,
+            flagged_df, prog_df, args.output_dir,
+        )
+
+        # ── Bonus B1: Contract validation on the fact schema ──────────────
         if not args.skip_bonus and _BONUS_AVAILABLE:
             contract_path = os.path.join(
                 os.path.dirname(__file__), "contracts", "fact_service_delivery.yaml"
@@ -206,18 +213,10 @@ def main() -> None:
                     run_stage(
                         "B1-contract-validate",
                         validate_and_raise,
-                        flagged_df, contract_path,
+                        fact_df, contract_path,
                     )
                 except ContractViolationError as e:
                     logger.error("B1 contract validation FAILED:\n%s", e)
-                    # Contract failure is logged but not fatal — the data
-                    # may still be useful for programme review.
-
-        fact_df = run_stage(
-            "05-fact",
-            build_fact_service_delivery,
-            flagged_df, prog_df, args.output_dir,
-        )
 
         # ── Critical DQ gate ──────────────────────────────────────────────
         fact_row_count = fact_df.count()
